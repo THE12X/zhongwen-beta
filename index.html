@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Zhongwen · HSK 1–3 Studio</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="icon" type="image/x-icon" href="china.ico" />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700;900&family=Poppins:wght@300;400;500;600;700;800&display=swap"
+    rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/hanzi-writer@3.5/dist/hanzi-writer.min.js"></script>
+</head>
+
+<body>
+  <header>
+    <div class="nav-container">
+      <a href="#" class="brand" onclick="switchView('home'); return false;">
+        <span class="brand-badge">中文</span>
+        <span>Zhongwen</span>
+      </a>
+
+      <nav class="nav-links" id="navLinks">
+        <button class="nav-btn active" data-view="home" onclick="switchView('home')">Home</button>
+        <button class="nav-btn" data-view="dictionary" id="navVocabBtn"
+          onclick="switchView('dictionary')">Vocabulary</button>
+        <button class="nav-btn" data-view="flashcards" onclick="switchView('flashcards')">Flashcards</button>
+        <button class="nav-btn" data-view="quiz" onclick="switchView('quiz')">Quiz Mode</button>
+        <button class="nav-btn" data-view="about" onclick="switchView('about')">About</button>
+      </nav>
+
+      <div class="nav-actions">
+        <button class="icon-btn" id="themeToggle" title="Toggle Dark/Light Theme" onclick="toggleTheme()">☀️</button>
+        <button class="icon-btn menu-toggle" title="Menu" onclick="toggleMobileMenu()">☰</button>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <!-- HOME SECTION -->
+    <section id="view-home" class="view active">
+      <div class="hero-section">
+        <div class="hero-glow"></div>
+        <div class="hero-kicker">HSK 1 · HSK 2 · HSK 3 Interactive Deck</div>
+        <div class="hanzi-hero-stage" aria-label="中文学习工作室">
+          <span class="hz-char">中</span>
+          <span class="hz-char">文</span>
+          <span class="hz-char">学</span>
+          <span class="hz-char">习</span>
+          <span class="hz-char">工</span>
+          <span class="hz-char">作</span>
+          <span class="hz-char">室</span>
+        </div>
+        <div class="hero-brand-sub">ZHONGWEN</div>
+        <p class="hero-desc">
+          A streamlined Mandarin vocabulary trainer built around your curated HSK 1, HSK 2 &amp; HSK 3 word
+          list—complete with native audio pronunciation, interactive stroke-order tracing, flashcards, and multi-mode
+          active recall quizzes.
+        </p>
+        <div class="hero-cta-group">
+          <button class="btn-primary" onclick="switchView('dictionary')">Explore Vocabulary →</button>
+          <button class="btn-secondary" onclick="switchView('flashcards')">Practice Flashcards</button>
+          <button class="btn-secondary" onclick="switchView('quiz')">Start Quiz</button>
+        </div>
+      </div>
+
+      <div class="home-stats-grid" id="homeStatsGrid"></div>
+    </section>
+
+    <!-- Shared Level Filter Bar (Shown on Vocabulary, Flashcards, Quiz) -->
+    <div class="controls-bar" id="sharedControls" style="display:none;">
+      <div class="filter-pills">
+        <button class="pill active" data-level="ALL" id="pillALL" onclick="setLevelFilter('ALL')">All</button>
+        <button class="pill" data-level="HSK1" id="pillHSK1" onclick="setLevelFilter('HSK1')">HSK 1</button>
+        <button class="pill" data-level="HSK2" id="pillHSK2" onclick="setLevelFilter('HSK2')">HSK 2</button>
+        <button class="pill" data-level="HSK3" id="pillHSK3" onclick="setLevelFilter('HSK3')">HSK 3</button>
+        <button class="pill" data-level="UNLEARNED" onclick="setLevelFilter('UNLEARNED')">To Learn</button>
+      </div>
+      <div class="search-box" id="searchContainer">
+        <input type="text" id="searchInput" placeholder="Search Hanzi, Pinyin, or English..."
+          oninput="renderDictionary()" />
+      </div>
+    </div>
+
+    <!-- DICTIONARY VIEW -->
+    <section id="view-dictionary" class="view">
+      <div class="stats-strip" id="statsStrip"></div>
+      <div class="vocab-grid" id="vocabGrid"></div>
+    </section>
+
+    <!-- FLASHCARDS VIEW -->
+    <section id="view-flashcards" class="view">
+      <div class="flashcard-wrapper">
+        <div class="stats-strip" style="justify-content:center;" id="fcCounter"></div>
+        <div class="flashcard" id="flashcard" onclick="flipCard()">
+          <span class="level-tag" id="fcLevel" style="position:absolute; top:1.1rem; left:1.1rem;">HSK1</span>
+          <button class="mini-btn" style="position:absolute; top:1rem; right:1rem;" title="Listen"
+            onclick="event.stopPropagation(); speakCurrentCard()">🔊</button>
+          <div class="fc-hanzi" id="fcHanzi">你好</div>
+          <div class="fc-pinyin" id="fcPinyin" style="display:none;">nǐ hǎo</div>
+          <div class="fc-english" id="fcEnglish" style="display:none;">Hello</div>
+          <div class="fc-hint" id="fcHint">Click card to reveal Pinyin &amp; Meaning</div>
+        </div>
+        <div class="fc-controls">
+          <button class="btn-secondary" onclick="prevCard()">← Prev</button>
+          <button class="btn-secondary" onclick="shuffleDeck()" title="Shuffle Flashcards">🔀 Shuffle</button>
+          <button class="btn-secondary" onclick="resetDeckOrder()" title="Restore Original Order">↺ Reset</button>
+          <button class="btn-secondary"
+            onclick="openStrokeModal(currentDeck[fcIndex].chinese, currentDeck[fcIndex].pinyin, currentDeck[fcIndex].english)">✍️
+            Strokes</button>
+          <button class="btn-secondary" id="fcMarkBtn" onclick="toggleLearnedCurrentCard()">✓ Mark Learned</button>
+          <button class="btn-primary" onclick="nextCard()">Next →</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- QUIZ VIEW -->
+    <section id="view-quiz" class="view">
+      <div class="quiz-box">
+        <div class="quiz-header">
+          <span>Score: <strong id="quizScore" style="color:var(--accent-text);">0</strong> / <span
+              id="quizTotal">0</span></span>
+          <select id="quizModeSelect" class="mode-select" onchange="changeQuizMode(this.value)" aria-label="Quiz Mode">
+            <option value="char-to-pinyin">Character → pinyin</option>
+            <option value="char-to-english" selected>Character → English</option>
+            <option value="pinyin-to-char">Pinyin → character</option>
+            <option value="english-to-char">English → character</option>
+            <option value="listen-to-char">Listen → character</option>
+          </select>
+        </div>
+        <div class="quiz-prompt" id="quizPromptArea">
+          <span class="level-tag" id="quizLevel">HSK1</span>
+          <div class="hanzi" id="quizQuestion" style="margin-top:0.5rem;">你好</div>
+          <div id="quizAudioWrap" style="margin-top: 0.5rem;">
+            <button class="mini-btn" style="margin: 0 auto;" onclick="speakText(currentQuizWord.chinese)"
+              title="Listen">🔊</button>
+          </div>
+        </div>
+        <div class="quiz-options" id="quizOptions"></div>
+        <div style="margin-top:1.25rem; text-align:right;">
+          <button class="btn-primary" id="nextQuizBtn" style="display:none;" onclick="generateQuiz()">Next Question
+            →</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ABOUT SECTION -->
+    <section id="view-about" class="view">
+      <div class="about-card">
+        <div class="about-header">
+          <h2>About <span style="color:var(--accent-text);">Zhongwen</span></h2>
+          <p>Zhongwen (中文) exists for one reason: everyone should be able to learn Chinese without paying for it.
+            Every page, word list and quiz here is free, with no accounts and no ads.</p>
+          <p>Our vocabulary follows the HSK levels 1 to 4, the standard path most learners take, and each word comes
+            with pinyin and an English meaning. Use the Vocabulary page to study and the Practice page to check what
+            stuck.</p>
+          <p>Found a mistake or want a word added? Tell us and we will fix it.</p>
+          <p>Developped by MOHAMED KAMMOU.</p>
+          <p>Contact us on weChat : mrx-ff</p>
+        </div>
+
+        <div class="about-grid">
+          <div class="about-feature">
+            <h3>📚 Curated HSK 1–3 Syllabus</h3>
+            <p>Organizes 461 essential words across HSK 1 (176), HSK 2 (174), and HSK 3 (111) with instant search by
+              Hanzi, Pinyin, or English definition.</p>
+          </div>
+          <div class="about-feature">
+            <h3>✍️ Live Stroke Order &amp; Tracing</h3>
+            <p>Powered by Hanzi Writer to animate proper stroke sequences with radical highlighting and interactive
+              freehand writing quizzes for every character.</p>
+          </div>
+          <div class="about-feature">
+            <h3>🎯 5-Way Quiz &amp; Audio Training</h3>
+            <p>Switch seamlessly between Character → Pinyin, Character → English, Pinyin → Character, English →
+              Character, and Listen → Character modes.</p>
+          </div>
+          <div class="about-feature">
+            <h3>💾 Local Mastery Tracking</h3>
+            <p>Automatically saves every mastered word in your browser's local storage so you can filter down to
+              unlearned terms anytime.</p>
+          </div>
+        </div>
+
+        <button class="btn-primary" onclick="switchView('dictionary')">Jump Back Into Study →</button>
+      </div>
+    </section>
+  </main>
+
+  <div class="modal-backdrop" id="strokeModal" onclick="if(event.target===this) closeStrokeModal()">
+    <div class="modal-card">
+      <div class="modal-head">
+        <div>
+          <strong id="modalTitle" style="font-size:1.2rem;"></strong>
+          <div id="modalSubtitle" style="font-size:0.85rem; color:var(--text-muted);"></div>
+        </div>
+        <button class="icon-btn" onclick="closeStrokeModal()">✕</button>
+      </div>
+      <div class="stroke-targets" id="strokeTargets"></div>
+      <div class="modal-footer">
+        <button class="btn-secondary" onclick="animateAllStrokes()">▶ Replay Animation</button>
+        <button class="btn-primary" onclick="quizAllStrokes()">✍️ Practice Writing</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+
+</html>
