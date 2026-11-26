@@ -588,9 +588,31 @@ function toggleTheme() {
   document.getElementById('themeToggle').textContent = next === 'dark' ? '☀️' : '🌙';
 }
 
-/* Universal Cross-Platform Audio Engine (Mobile, WeChat, & Desktop) */
+/* Universal Cross-Platform Audio Engine (iOS Safari, Android Chrome, WeChat, & Desktop) */
 let cachedZhVoice = null;
-let currentAudioPlayer = null;
+let audioUnlocked = false;
+
+const persistentAudio = document.createElement('audio');
+persistentAudio.setAttribute('playsinline', '');
+persistentAudio.setAttribute('webkit-playsinline', '');
+persistentAudio.referrerPolicy = 'no-referrer';
+persistentAudio.preload = 'none';
+document.body.appendChild(persistentAudio);
+
+function unlockMobileAudio() {
+  if (audioUnlocked) return;
+  audioUnlocked = true;
+  persistentAudio.src = 'data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA';
+  persistentAudio.play().then(() => persistentAudio.pause()).catch(() => {});
+  if ('speechSynthesis' in window) {
+    const u = new SpeechSynthesisUtterance('');
+    u.volume = 0;
+    window.speechSynthesis.speak(u);
+  }
+}
+
+document.addEventListener('touchstart', unlockMobileAudio, { once: true, passive: true });
+document.addEventListener('click', unlockMobileAudio, { once: true, passive: true });
 
 function loadChineseVoice() {
   if (!('speechSynthesis' in window)) return null;
@@ -609,31 +631,47 @@ if ('speechSynthesis' in window) {
   window.speechSynthesis.onvoiceschanged = loadChineseVoice;
 }
 
-function playCloudAudio(cleanedText) {
-  if (currentAudioPlayer) {
-    currentAudioPlayer.pause();
-    currentAudioPlayer = null;
-  }
+function playNativeSpeech(cleanedText) {
+  if (!('speechSynthesis' in window)) return;
+  try {
+    window.speechSynthesis.cancel();
+    const utter = new SpeechSynthesisUtterance(cleanedText);
+    const voice = cachedZhVoice || loadChineseVoice();
+    if (voice) utter.voice = voice;
+    utter.lang = 'zh-CN';
+    utter.rate = 0.88;
+    window.speechSynthesis.speak(utter);
+  } catch (e) {}
+}
 
+function playCloudAudio(cleanedText) {
+  persistentAudio.pause();
   const encoded = encodeURIComponent(cleanedText);
+
   const sources = [
-    `https://dict.youdao.com/dictvoice?audio=${encoded}&type=2`,
-    `https://translate.google.com/translate_tts?ie=UTF-8&tl=zh-CN&client=tw-ob&q=${encoded}`
+    `https://translate.googleapis.com/translate_tts?ie=UTF-8&client=gtx&tl=zh-CN&q=${encoded}`,
+    `https://translate.google.com/translate_tts?ie=UTF-8&tl=zh-CN&client=tw-ob&q=${encoded}`,
+    `https://fanyi.baidu.com/gettts?lan=zh&text=${encoded}&spd=4&source=web`
   ];
 
   let attempt = 0;
   const tryPlay = () => {
-    if (attempt >= sources.length) return;
-    const audio = new Audio(sources[attempt]);
-    currentAudioPlayer = audio;
-    audio.onerror = () => {
+    if (attempt >= sources.length) {
+      playNativeSpeech(cleanedText);
+      return;
+    }
+    persistentAudio.src = sources[attempt];
+    persistentAudio.onerror = () => {
       attempt++;
       tryPlay();
     };
-    audio.play().catch(() => {
-      attempt++;
-      tryPlay();
-    });
+    const playPromise = persistentAudio.play();
+    if (playPromise !== undefined) {
+      playPromise.catch(() => {
+        attempt++;
+        tryPlay();
+      });
+    }
   };
 
   tryPlay();
